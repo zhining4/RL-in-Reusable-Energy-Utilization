@@ -73,7 +73,7 @@ class WMEnv(gym.Env):
             self.generation = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['generation'].values[0]
             self.fixed_cost = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['fixed'].values[0]
             
-        self.state = [self.time, self.price, self.generation, self.fixed_cost, self.total_energy_cost, self.cur_ope]
+        self.state = [self.time, self.price, self.generation, self.fixed_cost, self.total_net_energy_cost, self.cur_ope]
         return self.state, self.cur_reward, self.done, {}
 
 
@@ -121,7 +121,7 @@ class WMEnv(gym.Env):
         self.generation = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['generation'].values[0]
         self.price = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['price'].values[0]
         
-        self.state = [self.time, self.price, self.generation, self.fixed_cost, self.total_energy_cost, self.cur_ope]
+        self.state = [self.time, self.price, self.generation, self.fixed_cost, self.total_net_energy_cost, self.cur_ope]
   
         return np.array(self.state, dtype=np.float32)
 
