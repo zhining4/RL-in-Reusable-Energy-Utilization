@@ -50,13 +50,13 @@ class WMEnv(gym.Env):
         self.total_energy_cost += self.cur_energy
         
         # compute net_energy_cost and total_net_energy_cost for all appliances at time t
-        self.net_energy_cost = self.fixed_cost + self.cur_energy - self.generation        
-        if self.net_energy_cost < 0:
-            self.net_energy_cost = 0
+        net_energy_cost = self.fixed_cost + self.cur_energy - self.generation        
+        if net_energy_cost < 0:
+            net_energy_cost = 0
         # compute cumulative sum of net_energy_cost
-        self.total_net_energy_cost += self.net_energy_cost
+        self.total_net_energy_cost += net_energy_cost
         
-        self.cur_reward = self.calReward(action)
+        self.cur_reward = self.calReward(action, net_energy_cost)
 
 
         #Calculating elements in new state
@@ -77,9 +77,9 @@ class WMEnv(gym.Env):
         return self.state, self.cur_reward, self.done, {}
 
 
-    def calReward(self, action):
+    def calReward(self, action, net_energy_cost):
     # calculating reward based on cur_energy and total_energy_cost
-        net_energy_cost_reward = self.price * self.net_energy_cost
+        net_energy_cost_reward = self.price * net_energy_cost
         
         if action == 1:        
             if self.total_net_energy_cost > self.max_limit:
@@ -113,7 +113,6 @@ class WMEnv(gym.Env):
         self.total_energy_cost = 0
         self.cur_ope = 0
 
-        self.net_energy_cost = 0 # fixed + WM - generation
         self.total_net_energy_cost = 0 # cumulative sum of net_energy_cost
         
         self.cur_date = self.random_date(n=1) # in each episocde, randomly select a new day for interaction
