@@ -17,7 +17,7 @@ import random
 
 
 class WMEnv(gym.Env):
-    def __init__(self, df, t_prefer_s, t_prefer_e, max_limit, penalty_time, penalty_energy, penalty_ope):   
+    def __init__(self, df, t_prefer_s, t_prefer_e, max_limit, penalty_time, penalty_energy, penalty_ope, mode):   
         super(WMEnv, self).__init__()
         self.df = df
         self.t_prefer_s = t_prefer_s
@@ -29,6 +29,14 @@ class WMEnv(gym.Env):
         self.prefer_ope = 1 # We prefer to use WM once a day
         self.observation_space = spaces.Box(low = 0, high = float('inf'), shape = (6,), dtype=np.float32)
         self.action_space = spaces.Discrete(2)        
+        self.date_list = df.date.unique()
+        
+        self.mode = mode
+        assert self.mode in ['training', 'testing'], 'mode should be either \'training\' or \'testing\''
+        if self.mode == 'testing':
+            # set counter to traverse all date in testing set
+            self.cnt = 0
+        
        
     def action_mapping(self, action):
         mapping = {0: "Turn off", 1: "Turn on"}
@@ -64,10 +72,13 @@ class WMEnv(gym.Env):
 
         if self.time == 24:
             # if time = 24, we need to update using values at time = 0 in the following day.
-            self.price = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['price'].values[0]
-            self.generation = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['generation'].values[0]
-            self.fixed_cost = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['fixed'].values[0]
-            self.done = True
+            if self.mode == 'training':
+                self.price = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['price'].values[0]
+                self.generation = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['generation'].values[0]
+                self.fixed_cost = self.df[(self.df.date == datetime.datetime.strftime(pd.to_datetime(self.cur_date) + datetime.timedelta(days=1), '%Y-%m-%d')) & (self.df.t == 0)]['fixed'].values[0]
+                self.done = True
+            else:
+                self.done = True
         else:
             self.price = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['price'].values[0]
             self.generation = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['generation'].values[0]
@@ -115,7 +126,18 @@ class WMEnv(gym.Env):
 
         self.total_net_energy_cost = 0 # cumulative sum of net_energy_cost
         
-        self.cur_date = self.random_date(n=1) # in each episocde, randomly select a new day for interaction
+#         self.cur_date = self.random_date(n=1) # in each episocde, randomly select a new day for interaction
+        if self.mode == 'training':
+            while True:
+                sample = self.date_list[random.sample(range(len(self.date_list)), 1)][0] # sample a new day
+                if datetime.datetime.strftime(pd.to_datetime(sample) + datetime.timedelta(days=1), '%Y-%m-%d') in self.date_list:
+                    # check if the next day is in the dataset
+                    self.cur_date = sample
+                    break
+        else:
+            self.cur_date = self.date_list[self.cnt]
+            self.cnt += 1
+
         self.fixed_cost = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['fixed'].values[0]
         self.generation = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['generation'].values[0]
         self.price = self.df[(self.df.date == self.cur_date) & (self.df.t == self.time)]['price'].values[0]
@@ -150,4 +172,5 @@ class WMEnv(gym.Env):
         end = pd.to_datetime(self.df.date).max() + datetime.timedelta(days=-1) # remove the last day
         ndays = (end - start).days + 1
         return datetime.datetime.strftime((pd.to_timedelta(np.random.rand(n) * ndays, unit='D') + start)[0], '%Y-%m-%d')
+        
 
