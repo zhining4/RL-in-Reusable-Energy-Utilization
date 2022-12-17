@@ -1,3 +1,31 @@
+'''
+Opengym Environment Set Up for Air Conditioner
+
+Author: Parker Jiang & Yujia Xie
+
+Since we do not have a real environment setup for our agent to interact with, 
+we have to customize environments for air conditioner. 
+Note that it is impractical to create a simulated
+environment that is 100% same as a real appliance, 
+we simplify it using some basic rules. And our
+environments follow OpenAI gym interface.
+
+'''
+
+import torch                                    
+import torch.nn as nn                           
+import torch.nn.functional as F                 
+import numpy as np                              
+import pandas as pd
+import datetime
+import matplotlib.pyplot as plt
+import seaborn as sns
+import random
+import json
+import gym
+from gym import spaces
+from statistics import median
+
 class ACEnv(gym.Env):
     """Airconditioner environment for OpenAI gym"""
 
@@ -10,6 +38,7 @@ class ACEnv(gym.Env):
         self.penalty_temp = penalty_temp
         self.penalty_energy = penalty_energy
         self.penalty_ope = penalty_ope
+        self.cnt = 0
         
         self.prefered_temp_min = prefered_temp_min
         self.prefered_temp_max = prefered_temp_max
@@ -109,7 +138,7 @@ class ACEnv(gym.Env):
             else:
                 self.temp += [-action*2, action*2][random.randint(0, 1)]
         else:
-            self.energy_cost == 0
+            self.energy_cost += np.random.uniform(0,0.1)
             
         # update total energy cost
         self.total_energy_cost += self.energy_cost
@@ -174,3 +203,5 @@ class ACEnv(gym.Env):
         end = pd.to_datetime(self.df.date).max() + datetime.timedelta(days=-1) # remove the last day
         ndays = (end - start).days + 1
         return datetime.datetime.strftime((pd.to_timedelta(np.random.rand(n) * ndays, unit='D') + start)[0], '%Y-%m-%d')
+
+
